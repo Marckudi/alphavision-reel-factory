@@ -1,0 +1,38 @@
+name: Publicar Reel en Instagram
+# Complementa a render-reel.yml: aquel RENDERIZA (disparado por n8n),
+# este PUBLICA lo que ya está en content_calendar con vídeo listo.
+# Lee las filas 'pending' vencidas y las sube a Instagram vía Graph API.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Prueba sin publicar (1 = sí)"
+        default: "0"
+      limit:
+        description: "Máx reels a publicar en esta ejecución"
+        default: "1"
+  schedule:
+    # Diario a las 11:00 UTC (~12:00–13:00 España). Ajusta a tu publish_time.
+    - cron: "0 11 * * *"
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Publicar reels vencidos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          LIMIT: ${{ github.event.inputs.limit || '1' }}
+        run: node scripts/publish.mjs
